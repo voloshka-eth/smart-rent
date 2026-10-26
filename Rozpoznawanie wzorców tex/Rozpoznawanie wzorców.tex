@@ -1,0 +1,266 @@
+\documentclass[10pt,a4paper]{article}
+
+% Kodowanie, język i typografia
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% Układ strony i odstępy
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.25}
+\usepackage{parskip}
+\usepackage{enumitem}
+
+% Tabele, matematyka i odnośniki
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{xurl}
+
+\hypersetup{
+	pdftitle={Wpływ cech przestrzennych i strategii walidacji na dokładność predykcji cen najmu mieszkań z wykorzystaniem modelu CatBoost},
+	pdfauthor={Ivan Kokhman, Błażej Krasucki},
+	hidelinks
+}
+
+\urlstyle{same}
+
+\setlist[enumerate]{
+	leftmargin=*,
+	itemsep=0.25em,
+	topsep=0.25em
+}
+
+\setlist[itemize]{
+	leftmargin=*,
+	itemsep=0.25em,
+	topsep=0.25em
+}
+
+\renewcommand{\arraystretch}{1.2}
+
+% Tytuł dokumentu
+\title{
+	\textbf{
+		Wpływ cech przestrzennych i strategii walidacji
+		na dokładność predykcji cen najmu mieszkań
+		z wykorzystaniem modelu CatBoost
+	}
+	\\[0.6em]
+}
+
+\author{
+	Ivan Kokhman (104432)\\
+	Błażej Krasucki (103885)\\[0.8em]
+	{\normalsize Politechnika Opolska -- kierunek Informatyka}\\[0.3em]
+	{\normalsize Przedmiot: Rozpoznawanie wzorców}\\[0.8em]
+	{\normalsize October 2026}
+}
+
+\date{}
+
+\begin{document}
+	
+	\maketitle
+	
+	
+	%------------------------------------------------
+	% STRESZCZENIE
+	%------------------------------------------------
+	
+	\begin{abstract}
+		Przedmiotem planowanej pracy jest ocena wpływu cech przestrzennych
+		oraz wyboru strategii walidacji na jakość predykcji cen najmu mieszkań.
+		Badanie będzie realizowane na danych ogłoszeniowych dotyczących mieszkań
+		w polskich miastach, zebranych w ramach projektu SmartRent AI.
+		Porównane zostaną regresja liniowa jako model odniesienia i model CatBoost,
+		trenowane zarówno na podstawowych cechach lokalu, jak i na zbiorze
+		rozszerzonym o informacje przestrzenne.
+		Zastosowane zostaną losowy podział danych oraz walidacja grupowa
+		uwzględniająca lokalizację.
+		Wyniki zostaną ocenione za pomocą MAE, RMSE i współczynnika $R^2$.
+	\end{abstract}
+	
+	\noindent
+
+	\noindent
+	\textbf{Repozytorium projektu:}
+	\url{https://github.com/voloshka-eth/smart-rent}
+	
+	%------------------------------------------------
+	% 1. TEMAT, CEL I UZASADNIENIE
+	%------------------------------------------------
+	\newpage
+	\section{Temat, cel i uzasadnienie}
+	
+	Na cenę najmu mieszkania wpływają zarówno parametry lokalu,
+	jak i jego położenie. Losowy podział danych może umieszczać
+	podobne, sąsiednie oferty jednocześnie w zbiorach uczącym
+	i testowym, prowadząc do optymistycznej oceny predykcji
+	\cite{roberts2017}.
+	
+	\noindent
+	\textbf{Cel pracy:}
+	ocenić wpływ cech przestrzennych i strategii walidacji
+	na błąd predykcji ceny najmu.
+	
+	\subsection{Pytania badawcze i hipotezy}
+	
+	W ramach badania zostaną zweryfikowane następujące hipotezy:
+	
+	\begin{itemize}
+		\item CatBoost osiągnie niższy MAE niż regresja liniowa.
+		\item Dodanie cech przestrzennych zmniejszy błąd predykcji.
+		\item Walidacja przestrzenna wykaże większy błąd niż podział losowy.
+	\end{itemize}
+	
+	%------------------------------------------------
+	% 2. OPIS ZADANIA I DANE WEJŚCIOWE
+	%------------------------------------------------
+	
+	\section{Opis zadania i dane wejściowe}
+	
+	Wykorzystane zostaną dane z projektu SmartRent AI:
+	wstępnie około 18 tys. ogłoszeń z dziewięciu polskich miast.
+	Po oczyszczeniu zbioru model otrzyma cechy mieszkania
+	(miasto, dzielnica, powierzchnia, liczba pokoi, piętro
+	i udogodnienia) oraz -- w wariancie rozszerzonym --
+	odległości do centrum, transportu i wybranych usług.
+	
+	Przygotowanie danych obejmie deduplikację, odfiltrowanie
+	błędnych ofert i ocenę jakości geolokalizacji.
+	Celem predykcji jest cena ofertowa najmu w PLN miesięcznie,
+	bez opłat administracyjnych.
+	Zmienna \texttt{price\_per\_m2} zostanie wykluczona
+	z predyktorów z uwagi na ryzyko przecieku informacji.
+	
+	%------------------------------------------------
+	% 3. PLANOWANA METODYKA
+	%------------------------------------------------
+	
+	\section{Planowana metodyka}
+	
+	Porównane zostaną regresja liniowa (model bazowy) oraz
+	\texttt{CatBoostRegressor} \cite{prokhorenkova2018}.
+	Każdy model zostanie uruchomiony z podstawowym i przestrzennie
+	rozszerzonym zestawem cech, co da łącznie cztery konfiguracje
+	eksperymentu.
+	
+	W ramach porównania zostaną zastosowane dwie strategie walidacji:
+	
+	\begin{enumerate}
+		\item losowa walidacja krzyżowa;
+		\item walidacja grupowa, rozdzielająca obszary
+		miasto--dzielnica pomiędzy foldy.
+	\end{enumerate}
+	
+	W obu strategiach wykorzystane będą identyczne konfiguracje modeli.
+	Przygotowanie cech nastąpi wyłącznie na danych treningowych,
+	aby ograniczyć ryzyko przecieku informacji.
+	
+	Wyniki zostaną przedstawione za pomocą metryk MAE, RMSE i $R^2$,
+	również w rozbiciu na poszczególne miasta.
+	
+	%------------------------------------------------
+	% 4. PROPONOWANE CHECKPOINTY
+	%------------------------------------------------
+	
+	\newpage
+	\section{Proponowane checkpointy}
+	
+	\begin{table}[htbp]
+		\centering
+		\small
+		\caption{Harmonogram realizacji projektu}
+		\label{tab:checkpointy}
+		
+		\begin{tabularx}{\textwidth}{
+				@{}
+				p{2.1cm}
+				p{4.2cm}
+				X
+				@{}
+			}
+			\toprule
+			\textbf{Termin}
+			&
+			\textbf{Etap}
+			&
+			\textbf{Oczekiwany rezultat / dowód wykonania}
+			\\
+			\midrule
+			
+			27.10.2026
+			&
+			Checkpoint 1: dane i plan eksperymentu
+			&
+			Zweryfikowany zbiór danych, raport jakości geolokalizacji,
+			lista cech i ustalony schemat podziałów.
+			\\
+			
+			24.11.2026
+			&
+			Checkpoint 2: modele i walidacja
+			&
+			Uruchomione modele bazowe i CatBoost, porównanie wariantów
+			cech oraz tabela MAE/RMSE/$R^2$ dla obu schematów walidacji.
+			\\
+			
+			12.01.2027
+			&
+			Checkpoint 3: analiza wyników i artykuł
+			&
+			Interpretacja hipotez, wykresy i tabele, analiza ograniczeń
+			oraz kompletna wersja miniartykułu.
+			\\
+			
+			\bottomrule
+		\end{tabularx}
+	\end{table}
+	
+	%------------------------------------------------
+	% 5. PLANOWANE REZULTATY
+	%------------------------------------------------
+	
+	\section{Planowane rezultaty i kryteria zakończenia}
+	
+	Rezultatem projektu będzie artykuł zawierający tabelę metryk,
+	opis eksperymentów, porównanie strategii walidacji oraz weryfikację
+	postawionych hipotez.
+	
+	Repozytorium będzie zawierać kod i parametry pozwalające odtworzyć
+	wyniki. W opracowaniu zostaną opisane zarówno wyniki potwierdzające
+	hipotezy, jak i wyniki im przeczące.
+	
+	%------------------------------------------------
+	% BIBLIOGRAFIA
+	%------------------------------------------------
+	
+	\begin{thebibliography}{99}
+		
+				\bibitem{roberts2017}
+		D. R. Roberts et al.,
+		\newblock ``Cross-validation strategies for data with temporal,
+		spatial, hierarchical, or phylogenetic structure,''
+		\newblock \emph{Ecography}, vol.~40, no.~8, pp.~913--929, 2017.
+		\newblock DOI:
+		\href{https://doi.org/10.1111/ecog.02881}
+		{10.1111/ecog.02881}.
+		
+		\bibitem{prokhorenkova2018}
+		L. Prokhorenkova et al.,
+		\newblock ``CatBoost: Unbiased Boosting with Categorical Features,''
+		\newblock \emph{Advances in Neural Information Processing Systems},
+		vol.~31, 2018.
+		
+
+		
+	\end{thebibliography}
+	
+\end{document}
